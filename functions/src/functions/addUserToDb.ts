@@ -7,6 +7,11 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+/**
+ * Adds a user to the database
+ * @param {functionsv1.auth.UserRecord} user - The user to add to the database
+ * @returns {Promise<void>} A promise that resolves when the user is added to the database
+ */
 export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord) => {
   const userId = user.uid;
   try {
