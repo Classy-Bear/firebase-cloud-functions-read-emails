@@ -20,10 +20,7 @@ export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord) => 
     );
     if (!googleProvider) {
       logger.error('User is not authenticated with Google', { userId });
-      throw new functionsv1.https.HttpsError(
-        'failed-precondition',
-        'User must be authenticated with Google'
-      );
+      return;
     }
     await admin.firestore()
       .collection('users')
@@ -36,6 +33,5 @@ export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord) => 
     logger.info("User added to Firestore", { userId });
   } catch (error) {
     logger.error('Error adding user to db', { userId, error });
-    throw new functionsv1.https.HttpsError('internal', 'Failed to add user to db');
   }
 }; 
