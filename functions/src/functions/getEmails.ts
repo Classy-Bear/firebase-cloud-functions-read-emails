@@ -40,17 +40,18 @@ export const getEmailsFunction = async (request: functionsv2.https.CallableReque
         for (const message of messages) {
             const messageId = message.id;
             if (!messageId) {
-                logger.warn('Message ID missing from message.', { message });
+                logger.warn('Message ID missing from message on getEmailsFunction', { message });
                 continue;
             }
             const messageDetails = await getMessage(userUid, messageId, client);
-            logger.info('Fetched message details:', { messageDetails });
+            logger.info('Fetched message details on getEmailsFunction:', { messageDetails });
             await processAndStoreEmail(messageDetails, userUid, messageId);
-            logger.info('Processed and stored email:', { messageId });
+            logger.info('Processed and stored email on getEmailsFunction:', { messageId });
         }
+        logger.info('Successfully processed and stored all emails on getEmailsFunction');
         return { success: true };
     } catch (error) {
-        logger.error('Error listing messages:', { error, request });
-        throw new functionsv2.https.HttpsError('internal', 'Error listing messages', request);
+        logger.error('Error listing messages on getEmailsFunction:', { error, request });
+        throw new functionsv2.https.HttpsError('internal', 'Error listing messages on getEmailsFunction', request);
     }
 };
