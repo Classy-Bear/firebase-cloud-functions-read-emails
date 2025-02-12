@@ -15,9 +15,9 @@ if (!admin.apps.length) {
 }
 
 /**
- * Fetches and logs emails from the emailProcessingQueue based on a given historyId.
- * @param emailAddress - The email address of the user to fetch emails for.
- * @returns - A promise that resolves to void.
+ * Fetches and processes emails for a user
+ * @param request - The request object containing the user's authentication information
+ * @returns A promise that resolves to a boolean indicating success or failure
  */
 export const getEmailsFunction = async (request: functionsv2.https.CallableRequest) => {
     const db = admin.firestore();
