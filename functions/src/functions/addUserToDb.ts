@@ -12,7 +12,7 @@ if (!admin.apps.length) {
  * @param {functionsv1.auth.UserRecord} user - The user to add to the database
  * @returns {Promise<void>} A promise that resolves when the user is added to the database
  */
-export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord) => {
+export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord): Promise<void> => {
   const userId = user.uid;
   try {
     const googleProvider = user.providerData.find(
