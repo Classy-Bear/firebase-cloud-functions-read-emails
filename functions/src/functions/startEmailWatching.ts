@@ -34,12 +34,12 @@ const setupGmailWatch = async (uid: string) => {
     const db = admin.firestore();
     const tokenSnapshot = await db.collection('gmail_tokens').doc(uid).get();
     if (!tokenSnapshot.exists) {
-      throw new Error(`No token document found for user on setupGmailWatch ${uid}`);
+      throw new Error(`No token document found for user ${uid} on setupGmailWatch`);
     }
     const tokenData = tokenSnapshot.data();
     const refreshToken = tokenData?.refresh_token;
     if (!refreshToken) {
-      throw new Error(`No refresh token found for user on setupGmailWatch ${uid}`);
+      throw new Error(`No refresh token found for user ${uid} on setupGmailWatch`);
     }
     logger.info(`Creating Gmail client for user ${uid} on setupGmailWatch`);
     const oauth2Client = await createGmailClient(uid);
