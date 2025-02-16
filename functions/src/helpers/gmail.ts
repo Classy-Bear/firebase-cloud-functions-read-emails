@@ -2,6 +2,7 @@ import { logger } from "firebase-functions/v1";
 import { gmail_v1, google } from "googleapis";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import { getRefreshToken, storeRefreshToken } from "./db";
+import { simpleParser } from "mailparser";
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -135,7 +136,7 @@ export const getMessage = async (userUid: string, messageId: string, client?: OA
     const messageResponse = await gmail.users.messages.get({
       userId: 'me',
       id: messageId,
-      format: 'full',
+      format: 'raw',
     });
     logger.info('Message fetched successfully', { userUid, messageId });
     const messageDetails = messageResponse.data;
@@ -152,9 +153,10 @@ export const getMessage = async (userUid: string, messageId: string, client?: OA
  * @property {string | null} historyId - The history ID of the message
  * @property {string | null} subject - The subject of the message
  * @property {string | null} from - The sender of the message
- * @property {string | null} to - The recipient of the message
+ * @property {string[] | string | null} to - The recipient of the message
  * @property {Date | null} date - The date of the message
  * @property {string | null} body - The body of the message
+ * @property {string | null} text - The text of the message
  * @property {string[] | null} labels - The labels of the message
  * @property {string | null} snippet - The snippet of the message
  */
@@ -163,9 +165,10 @@ interface EmailData {
   historyId: string | null;
   subject: string | null;
   from: string | null;
-  to: string | null;
+  to: string[] | string | null;
   date: Date | null;
   body: string | null;
+  text: string | null;
   labels: string[] | null;
   snippet: string | null;
 }
@@ -176,46 +179,39 @@ interface EmailData {
  * @returns {Promise<gmail_v1.Schema$MessageHeader[]>} A promise that resolves with the headers
  */
 export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: string, messageId: string): Promise<EmailData> => {
-  const { id } = message;
+  const { id, historyId } = message;
   if (!id) {
     throw new Error(`Message ID does not exist for message ${messageId} on user ${userId} on processAndStoreEmail`);
   }
-  const headers = message.payload?.headers;
-  if (!headers) {
-    throw new Error(`Headers do not exist for message ${messageId} on user ${userId} on processAndStoreEmail`);
-  }
-  const subject = headers.find((h: any) => h.name === 'Subject')?.value || null;
-  const from = headers.find((h: any) => h.name === 'From')?.value || null;
-  const to = headers.find((h: any) => h.name === 'To')?.value || null;
-  const date = headers.find((h: any) => h.name === 'Date')?.value || null;
-  let body = null;
-  if (message.payload?.parts) {
-    const textPart = message.payload.parts.find((part: any) => part.mimeType === 'text/plain');
-    if (textPart && textPart.body?.data) {
-      body = Buffer.from(textPart.body.data, 'base64').toString();
-    } else {
-      logger.warn(`No text part found for message ${messageId} on user ${userId} on processAndStoreEmail`);
-    }
-  } else if (message.payload?.body?.data) {
-    body = Buffer.from(message.payload.body.data, 'base64').toString();
-  } else {
-    logger.warn(`No body found for message ${messageId} on user ${userId} on processAndStoreEmail`);
-  }
-  const historyId = message.historyId || null;
   if (!historyId) {
-    logger.warn(`History ID does not exist for message ${messageId} on user ${userId} on processAndStoreEmail`);
+    throw new Error(`History ID does not exist for message ${messageId} on user ${userId} on processAndStoreEmail`);
   }
-  return {
-    messageId: id,
-    historyId,
-    subject,
-    from,
-    to,
-    date: date ? new Date(date) : null,
-    body,
-    labels: message.labelIds || null,
-    snippet: message.snippet || null,
-  };
+  if (message.raw) {
+    logger.info(`Raw email for message ${messageId} on user ${userId} in processAndStoreEmail`, { raw: message.raw });
+    try {
+      const rawMessage = Buffer.from(message.raw, 'base64').toString('utf-8');
+      logger.info(`Raw message for message ${messageId} on user ${userId} in processAndStoreEmail`, { rawMessage });
+      const parsedEmail = await simpleParser(rawMessage);
+      logger.info(`Parsed email for message ${messageId} on user ${userId} in processAndStoreEmail`, { parsedEmail });
+      return {
+        messageId: id,
+        historyId: message.historyId || null,
+        subject: parsedEmail.subject || null,
+        from: parsedEmail.from?.text || null,
+        to: parsedEmail.to instanceof Array ? parsedEmail.to.map((t) => t.text) : parsedEmail.to?.text || null,
+        date: parsedEmail.date ? new Date(parsedEmail.date) : null,
+        body: parsedEmail.html || null,
+        text: parsedEmail.text || null,
+        labels: message.labelIds || null,
+        snippet: message.snippet || null,
+      };
+    } catch (error) {
+      logger.error(`Error parsing raw email for message ${messageId} on user ${userId} in processAndStoreEmail`, { error });
+      throw error;
+    }
+  } else {
+    throw new Error(`No raw email content found for message ${messageId} on user ${userId} in processAndStoreEmail`);
+  }
 }
 
 /**
