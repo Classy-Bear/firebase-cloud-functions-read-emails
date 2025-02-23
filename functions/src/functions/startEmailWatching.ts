@@ -13,6 +13,7 @@ import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
 import { createGmailClient, exchangeAuthCodeForRefreshToken } from '../helpers/gmail';
 import { storeRefreshToken } from '../helpers/db';
+import { getCredentials } from '../utils/httpv2';
 dotenv.config();
 
 // Initialize Firebase
@@ -62,24 +63,6 @@ const setupGmailWatch = async (uid: string) => {
 };
 
 /**
- * Validates the user's request and returns the user's ID.
- * @param request - The request object containing the user's authentication information.
- * @returns An object containing the user ID.
- */
-const getCredentials = async (request: functionsv2.https.CallableRequest<any>) => {
-  const auth = request.auth;
-  const uid = auth?.uid;
-  if (!uid) {
-    logger.error('User is not authenticated on getCredentials', { request });
-    throw new functionsv2.https.HttpsError(
-      'unauthenticated',
-      'User must be authenticated to start email watching'
-    );
-  }
-  return { uid };
-}
-
-/**
  * Firebase function that starts email watching for a user.
  *
  * This function checks for an existing watch, validates that the user is registered,
@@ -89,7 +72,7 @@ export const startEmailWatchingFunction = async (request: functionsv2.https.Call
   try {
     const data = request.data;
     logger.info(`Start email watching for user ${data.uid} on startEmailWatchingFunction`);
-    const { uid } = await getCredentials(request);
+    const uid = await getCredentials(request);
     const { authCode } = data;
     logger.info(`Storing refresh token for user ${uid} on startEmailWatchingFunction`);
     const { refresh_token } = await exchangeAuthCodeForRefreshToken(authCode, uid);
