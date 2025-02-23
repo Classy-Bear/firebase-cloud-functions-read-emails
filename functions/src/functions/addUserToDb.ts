@@ -20,12 +20,12 @@ export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord): Pr
       (provider) => provider.providerId === 'google.com'
     );
     if (!googleProvider) {
-      logger.error('User is not authenticated with Google', { userId });
+      logger.error('User is not authenticated with Google on addUserToDbFunction', { userId });
       return;
     }
     await addUserToDb(user);
-    logger.info("User added to Firestore", { userId });
+    logger.info('User added to Firestore on addUserToDbFunction', { userId });
   } catch (error) {
-    logger.error('Error adding user to db', { userId, error });
+    logger.error('Error adding user to db on addUserToDbFunction', { userId, error });
   }
 }; 
