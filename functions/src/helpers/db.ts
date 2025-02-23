@@ -6,7 +6,7 @@ import * as functionsv1 from "firebase-functions/v1";
 
 // Initialize Firebase
 if (!admin.apps.length) {
-    admin.initializeApp();
+  admin.initializeApp();
 }
 
 /**
@@ -15,17 +15,17 @@ if (!admin.apps.length) {
  * @returns {Promise<string>} A promise that resolves with the refresh token
  */
 export const getRefreshToken = async (uid: string): Promise<string> => {
-    const db = admin.firestore();
-    const tokenSnapshot = await db.collection('gmail_tokens').doc(uid).get();
-    if (!tokenSnapshot.exists) {
-        throw new Error(`No token document found for user ${uid} on createGmailClient`);
-    }
-    const tokenData = tokenSnapshot.data();
-    const refreshToken = tokenData?.refresh_token;
-    if (!refreshToken) {
-        throw new Error(`No refresh token found for user ${uid} on createGmailClient`);
-    }
-    return refreshToken;
+  const db = admin.firestore();
+  const tokenSnapshot = await db.collection('gmail_tokens').doc(uid).get();
+  if (!tokenSnapshot.exists) {
+    throw new Error(`No token document found for user ${uid} on createGmailClient`);
+  }
+  const tokenData = tokenSnapshot.data();
+  const refreshToken = tokenData?.refresh_token;
+  if (!refreshToken) {
+    throw new Error(`No refresh token found for user ${uid} on createGmailClient`);
+  }
+  return refreshToken;
 }
 
 /**
@@ -33,12 +33,12 @@ export const getRefreshToken = async (uid: string): Promise<string> => {
  * @param {string} uid - The Firebase user ID of the user to store the refresh token for
  * @param {string} refreshToken - The refresh token to store
  */
-export const storeRefreshToken = async (uid: string, refreshToken: string ) => {
-    const db = admin.firestore();
-    await db.collection('gmail_tokens').doc(uid).set({
-        refresh_token: refreshToken,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+export const storeRefreshToken = async (uid: string, refreshToken: string) => {
+  const db = admin.firestore();
+  await db.collection('gmail_tokens').doc(uid).set({
+    refresh_token: refreshToken,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
 }
 
 /**
