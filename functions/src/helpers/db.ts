@@ -88,3 +88,21 @@ export const addUserToDb = async (user: functionsv1.auth.UserRecord) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
 }
+
+/**
+ * Fetches a user from the database
+ * @param {string} uid - The Firebase user ID of the user to fetch
+ * @returns {Promise<admin.firestore.DocumentData>} A promise that resolves with the user
+ */
+export const getUserFromDb = async (uid: string): Promise<admin.firestore.DocumentData> => {
+  const db = admin.firestore();
+  const userDoc = await db.collection('users').doc(uid).get();
+  if (!userDoc.exists) {
+    throw new Error(`User not found for email: ${uid}`);
+  }
+  const userData = userDoc.data();
+  if (!userData) {
+    throw new Error(`User data not found for email: ${uid}`);
+  }
+  return userData;
+}
