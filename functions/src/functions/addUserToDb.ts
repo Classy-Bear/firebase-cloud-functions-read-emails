@@ -1,6 +1,7 @@
 import * as logger from "firebase-functions/logger";
 import * as functionsv1 from "firebase-functions/v1";
 import * as admin from 'firebase-admin';
+import { addUserToDb } from "..";
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -22,14 +23,7 @@ export const addUserToDbFunction = async (user: functionsv1.auth.UserRecord): Pr
       logger.error('User is not authenticated with Google', { userId });
       return;
     }
-    await admin.firestore()
-      .collection('users')
-      .doc(userId)
-      .set({
-        email: user.email,
-        uid: user.uid,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+    await addUserToDb(user);
     logger.info("User added to Firestore", { userId });
   } catch (error) {
     logger.error('Error adding user to db', { userId, error });

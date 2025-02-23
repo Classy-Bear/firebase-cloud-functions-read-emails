@@ -2,6 +2,7 @@ import admin from "firebase-admin";
 import { gmail_v1 } from "googleapis";
 import { logger } from "firebase-functions/v2";
 import { getFullMessage } from "./gmail";
+import * as functionsv1 from "firebase-functions/v1";
 
 // Initialize Firebase
 if (!admin.apps.length) {
@@ -74,3 +75,16 @@ export const processAndStoreEmail = async (message: gmail_v1.Schema$Message, use
     throw error;
   }
 };
+
+/**
+ * Adds a user to the database
+ * @param {functionsv1.auth.UserRecord} user - The user to add
+ */
+export const addUserToDb = async (user: functionsv1.auth.UserRecord) => {
+  const db = admin.firestore();
+  await db.collection('users').doc(user.uid).set({
+    email: user.email,
+    uid: user.uid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+}
