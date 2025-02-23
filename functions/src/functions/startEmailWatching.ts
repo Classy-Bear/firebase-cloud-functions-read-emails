@@ -5,62 +5,14 @@ import * as admin from 'firebase-admin';
 import * as functionsv2 from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 
-// Google
-import { google } from 'googleapis';
-// import { OAuth2Client } from 'google-auth-library';
-
-// Dotenv
-import * as dotenv from 'dotenv';
-import { createGmailClient, exchangeAuthCodeForRefreshToken } from '../helpers/gmail';
+import { createGmailClient, exchangeAuthCodeForRefreshToken, watchGmail } from '../helpers/gmail';
 import { storeRefreshToken } from '../helpers/db';
 import { getCredentials } from '../utils/httpv2';
-dotenv.config();
 
 // Initialize Firebase
 if (!admin.apps.length) {
   admin.initializeApp();
 }
-
-// Constants
-const PROJECT_NAME = process.env.MY_FIREBASE_PROJECT_NAME;
-const TOPIC_NAME = 'gmail-topic';
-const topicName = `projects/${PROJECT_NAME}/topics/${TOPIC_NAME}`;
-
-/**
- * Sets up Gmail push notifications for a user
- * @param uid - User ID
- */
-const setupGmailWatch = async (uid: string) => {
-  try {
-    logger.info(`Setting up Gmail watch for user ${uid} on setupGmailWatch`);
-    const db = admin.firestore();
-    const tokenSnapshot = await db.collection('gmail_tokens').doc(uid).get();
-    if (!tokenSnapshot.exists) {
-      throw new Error(`No token document found for user ${uid} on setupGmailWatch`);
-    }
-    const tokenData = tokenSnapshot.data();
-    const refreshToken = tokenData?.refresh_token;
-    if (!refreshToken) {
-      throw new Error(`No refresh token found for user ${uid} on setupGmailWatch`);
-    }
-    logger.info(`Creating Gmail client for user ${uid} on setupGmailWatch`);
-    const oauth2Client = await createGmailClient(uid);
-    logger.info(`Gmail client created successfully for user ${uid} on setupGmailWatch`);
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-    logger.info(`Setting up Gmail watch for user ${uid} on setupGmailWatch`);
-    await gmail.users.watch({
-      userId: 'me',
-      requestBody: {
-        labelIds: ['INBOX'],
-        topicName,
-      },
-    });
-    logger.info(`Gmail watch set up successfully for user ${uid} on setupGmailWatch`);
-  } catch (error) {
-    logger.error(`Error setting up Gmail watch for user ${uid} on setupGmailWatch`, { error });
-    throw error;
-  }
-};
 
 /**
  * Firebase function that starts email watching for a user.
@@ -79,7 +31,10 @@ export const startEmailWatchingFunction = async (request: functionsv2.https.Call
     logger.info(`Refresh token obtained successfully for user ${uid} on startEmailWatchingFunction`);
     await storeRefreshToken(uid, refresh_token);
     logger.info(`Refresh token stored successfully for user ${uid} on startEmailWatchingFunction`);
-    await setupGmailWatch(uid);
+    logger.info(`Creating Gmail client for user ${uid} on startEmailWatchingFunction`);
+    const oauth2Client = await createGmailClient(uid);
+    logger.info(`Gmail client created successfully for user ${uid} on startEmailWatchingFunction`);
+    await watchGmail(uid, oauth2Client);
     logger.info(`Email watching started successfully for user ${uid} on startEmailWatchingFunction`);
     return { success: true };
   } catch (error) {

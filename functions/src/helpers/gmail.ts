@@ -3,6 +3,8 @@ import { gmail_v1, google } from "googleapis";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import { getRefreshToken, storeRefreshToken } from "./db";
 import { simpleParser } from "mailparser";
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -248,3 +250,25 @@ export const getLatestMessages = async (userUid: string, historyId: string, clie
   }
   return messages;
 }
+
+// Constants
+const PROJECT_NAME = process.env.MY_FIREBASE_PROJECT_NAME;
+const TOPIC_NAME = 'gmail-topic';
+const topicName = `projects/${PROJECT_NAME}/topics/${TOPIC_NAME}`;
+
+/**
+ * Sets up Gmail watch for a user
+ * @param {string} uid - The Firebase user ID of the user to set up Gmail watch for
+ * @param {OAuth2Client} client - The Gmail client to use
+ */
+export const watchGmail = async (uid: string, client: OAuth2Client) => {
+  const gmail = google.gmail({ version: 'v1', auth: client });
+  logger.info(`Setting up Gmail watch for user ${uid} on watchGmail`);
+  await gmail.users.watch({
+    userId: 'me',
+    requestBody: {
+      labelIds: ['INBOX'],
+      topicName,
+    },
+  });
+};
