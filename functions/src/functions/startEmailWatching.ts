@@ -12,6 +12,7 @@ import { google } from 'googleapis';
 // Dotenv
 import * as dotenv from 'dotenv';
 import { createGmailClient, exchangeAuthCodeForRefreshToken } from '../helpers/gmail';
+import { storeRefreshToken } from '../helpers/db';
 dotenv.config();
 
 // Initialize Firebase
@@ -79,28 +80,6 @@ const getCredentials = async (request: functionsv2.https.CallableRequest<any>) =
 }
 
 /**
- * Exchanges an authorization code for access and refresh tokens
- * @param {string} authCode - The authorization code to exchange
- * @param {string} uid - Firebase user ID
- */
-const storeRefreshToken = async (authCode: string, uid: string) => {
-  try {
-    logger.info(`Storing refresh token for user ${uid} on storeRefreshToken`);
-    const { refresh_token } = await exchangeAuthCodeForRefreshToken(authCode, uid);
-    logger.info(`Refresh token obtained successfully for user ${uid} on storeRefreshToken`);
-    const db = admin.firestore();
-    await db.collection('gmail_tokens').doc(uid).set({
-      refresh_token,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-    logger.info(`Refresh token stored successfully for user ${uid} on storeRefreshToken`);
-  } catch (error) {
-    logger.error(`Error storing refresh token for user ${uid} on storeRefreshToken`, { error });
-    throw error;
-  }
-};
-
-/**
  * Firebase function that starts email watching for a user.
  *
  * This function checks for an existing watch, validates that the user is registered,
@@ -112,7 +91,11 @@ export const startEmailWatchingFunction = async (request: functionsv2.https.Call
     logger.info(`Start email watching for user ${data.uid} on startEmailWatchingFunction`);
     const { uid } = await getCredentials(request);
     const { authCode } = data;
-    await storeRefreshToken(authCode, uid);
+    logger.info(`Storing refresh token for user ${uid} on startEmailWatchingFunction`);
+    const { refresh_token } = await exchangeAuthCodeForRefreshToken(authCode, uid);
+    logger.info(`Refresh token obtained successfully for user ${uid} on startEmailWatchingFunction`);
+    await storeRefreshToken(uid, refresh_token);
+    logger.info(`Refresh token stored successfully for user ${uid} on startEmailWatchingFunction`);
     await setupGmailWatch(uid);
     logger.info(`Email watching started successfully for user ${uid} on startEmailWatchingFunction`);
     return { success: true };
