@@ -17,7 +17,7 @@
     "@google-cloud/pubsub": "^4.10.0",
     "dotenv": "^16.4.7",
     "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.3.1",
+    "firebase-functions": "^6.3.2",
     "googleapis": "^144.0.0",
     "mailparser": "^3.7.2"
   },
