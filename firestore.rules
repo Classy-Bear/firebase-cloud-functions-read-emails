@@ -7,7 +7,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
     
-    // Allow users to read their own emails
+    // Allow users to read their own emails and attachments
     match /emails/{userId}/messages/{messageId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       // Only allow Cloud Functions to write emails
@@ -20,5 +20,7 @@ service cloud.firestore {
       // Only allow Cloud Functions to write user documents
       allow write: if false;
     }
+
+    // Storage rules for attachments will be handled in storage.rules
   }
 }

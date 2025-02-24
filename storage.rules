@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Allow users to read their own attachments
+    match /attachments/{userId}/{messageId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Only allow Cloud Functions to write attachments
+      allow write: if false;
+    }
+  }
+} 

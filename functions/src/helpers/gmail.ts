@@ -163,6 +163,22 @@ export const getMessage = async (params: GetMessageParams): Promise<gmail_v1.Sch
 }
 
 /**
+ * Represents an attachment
+ * @property {string} id - The ID of the attachment
+ * @property {string} filename - The filename of the attachment
+ * @property {string} mimeType - The MIME type of the attachment
+ * @property {number | undefined} size - The size of the attachment
+ * @property {string} data - The base64 encoded data of the attachment
+ */
+type Attachment = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size?: number | null;
+  data: string;
+}
+
+/**
  * Represents the data for an email message
  * @property {string} messageId - The ID of the message
  * @property {string | null} historyId - The history ID of the message
@@ -174,8 +190,10 @@ export const getMessage = async (params: GetMessageParams): Promise<gmail_v1.Sch
  * @property {string | null} text - The text of the message
  * @property {string[] | null} labels - The labels of the message
  * @property {string | null} snippet - The snippet of the message
+ * @property {boolean} hasAttachments - Whether the message has attachments
+ * @property {Array<Attachment> | null} attachments - The attachments of the message
  */
-interface EmailData {
+type EmailData = {
   messageId: string;
   historyId: string | null;
   subject: string | null;
@@ -186,6 +204,8 @@ interface EmailData {
   text: string | null;
   labels: string[] | null;
   snippet: string | null;
+  hasAttachments: boolean;
+  attachments: Array<Attachment> | null;
 }
 
 /**
@@ -219,6 +239,8 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
         text: parsedEmail.text || null,
         labels: message.labelIds || null,
         snippet: message.snippet || null,
+        hasAttachments: parsedEmail.attachments.length > 0,
+        attachments: null,
       };
     } catch (error) {
       logger.error(`Error parsing raw email for message ${messageId} on user ${userId} in processAndStoreEmail`, { error });
@@ -284,4 +306,84 @@ export const watchGmail = async (uid: string, client: OAuth2Client) => {
       topicName,
     },
   });
+};
+
+/**
+ * Parameters for fetching an attachment from a Gmail message
+ * @property {string} userUid - The Firebase user ID
+ * @property {string} messageId - The Gmail message ID
+ * @property {OAuth2Client} client - The Gmail client
+ */
+type GetAttachmentParams = {
+  userUid: string;
+  messageId: string;
+  client?: OAuth2Client
+}
+
+/**
+ * Fetches attachments from a Gmail message
+ * @param {GetAttachmentParams} params - The parameters for the attachments
+ * @returns {Promise<{ id: string; buffer: Buffer; size: number }[]>} The attachment data
+ */
+export const getAttachments = async (params: GetAttachmentParams): Promise<Attachment[]> => {
+  const { userUid, messageId, client } = params;
+  const auth = client || await createGmailClient(userUid);
+  try {
+    const gmail = google.gmail({ version: 'v1', auth });
+    const fullMessage = await getMessage({ userUid, messageId, client, format: 'full' });
+    logger.info('Message fetched successfully on getAttachments', { userUid, messageId, fullMessage });
+    const parts = fullMessage.payload?.parts;
+    if (!parts) {
+      throw new Error('No parts found');
+    }
+    const attachments = [];
+    for (const part of parts) {
+      if (part.mimeType == "text/html") {
+        logger.info('HTML part found, skipping attachment on getAttachments', { userUid, messageId, part });
+      } else if (part.mimeType == "application/octet-stream") {
+        const id = part.body?.attachmentId;
+        const filename = part.filename;
+        const mimeType = part.mimeType;
+        const size = part.body?.size;
+        if (!id) {
+          logger.warn('Attachment ID not found', { userUid, messageId, part });
+          continue;
+        }
+        if (!filename) {
+          logger.warn('Attachment filename not found', { userUid, messageId, part });
+          continue;
+        }
+        if (!mimeType) {
+          logger.warn('Attachment MIME type not found', { userUid, messageId, part });
+          continue;
+        }
+        attachments.push({ id, filename, mimeType, size });
+      } else {
+        logger.warn('Unknown part found, skipping attachment on getAttachments', { userUid, messageId, part });
+      }
+    }
+    const attachmentsData: Attachment[] = [];
+    for (const attachment of attachments) {
+      const { id } = attachment;
+      const mailAttachment = await gmail.users.messages.attachments.get({
+        userId: 'me',
+        messageId: messageId,
+        id: id
+      });
+      if (!mailAttachment) {
+        logger.warn('Attachment not found', { userUid, messageId, attachment });
+        continue;
+      }
+      const attachmentData = mailAttachment.data.data;
+      if (!attachmentData) {
+        logger.warn('No attachment data found', { userUid, messageId, attachment });
+        continue;
+      }
+      attachmentsData.push({ ...attachment, data: attachmentData });
+    }
+    return attachmentsData;
+  } catch (error) {
+    logger.error('Error fetching attachment', { error, userUid, messageId });
+    throw error;
+  }
 };

@@ -1,7 +1,8 @@
 import admin from "firebase-admin";
 import { gmail_v1 } from "googleapis";
 import { logger } from "firebase-functions/v2";
-import { getFullMessage } from "./gmail";
+import { getFullMessage, getAttachments } from "./gmail";
+import { uploadAttachment } from "./storage";
 import * as functionsv1 from "firebase-functions/v1";
 
 // Initialize Firebase
@@ -60,9 +61,38 @@ export const processAndStoreEmail = async (message: gmail_v1.Schema$Message, use
       return;
     }
     const emailData = await getFullMessage(message, userId, messageId);
+    const attachmentsWithUrls = [];
+    try {
+      if (emailData.hasAttachments) {
+        const attachments = await getAttachments({
+          userUid: userId,
+          messageId: id,
+        });
+        for (const attachment of attachments) {
+          const downloadUrl = await uploadAttachment({
+            userId,
+            messageId: id,
+            attachmentId: attachment.id,
+            buffer: Buffer.from(attachment.data, 'base64'),
+            filename: attachment.filename,
+            contentType: attachment.mimeType
+          });
+          attachmentsWithUrls.push({
+            ...attachment,
+            downloadUrl
+          });
+        }
+      } else {
+        logger.info('Email has no attachments', { messageId: id, userId });
+      }
+    } catch (error) {
+      logger.error('Error processing attachment', { error, messageId: id, userId });
+      throw error;
+    }
     try {
       await emailRef.set({
         ...emailData,
+        attachments: attachmentsWithUrls.length > 0 ? attachmentsWithUrls : emailData.attachments,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
