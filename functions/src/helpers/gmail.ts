@@ -125,20 +125,33 @@ export const getMessages = async (userUid: string, client?: OAuth2Client): Promi
 }
 
 /**
+ * Parameters for fetching a message from the user's Gmail account
+ * @property {string} userUid - The Firebase user ID
+ * @property {string} messageId - The ID of the message to fetch
+ * @property {OAuth2Client} client - The Gmail client to use
+ * @property {string} format - The format of the message to fetch
+ */
+type GetMessageParams = {
+  userUid: string;
+  messageId: string;
+  client?: OAuth2Client;
+  format?: 'raw' | 'full';
+}
+
+/**
  * Fetches a message from the user's Gmail account
- * @param {string} userUid - The Firebase user ID of the user to fetch the message for
- * @param {string} messageId - The ID of the message to fetch
- * @param {OAuth2Client} client - The Gmail client to use
+ * @param {GetMessageParams} params - The parameters for the message
  * @returns {Promise<gmail_v1.Schema$Message>} A promise that resolves with the message
  */
-export const getMessage = async (userUid: string, messageId: string, client?: OAuth2Client): Promise<gmail_v1.Schema$Message> => {
+export const getMessage = async (params: GetMessageParams): Promise<gmail_v1.Schema$Message> => {
+  const { userUid, messageId, client, format = 'raw' } = params;
   const auth = client || await createGmailClient(userUid);
   try {
     const gmail = google.gmail({ version: 'v1', auth });
     const messageResponse = await gmail.users.messages.get({
       userId: 'me',
       id: messageId,
-      format: 'raw',
+      format: format,
     });
     logger.info('Message fetched successfully', { userUid, messageId });
     const messageDetails = messageResponse.data;

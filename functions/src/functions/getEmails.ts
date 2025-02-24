@@ -33,7 +33,7 @@ export const getEmailsFunction = async (request: functionsv2.https.CallableReque
                 logger.warn('Message ID missing from message on getEmailsFunction', { message });
                 continue;
             }
-            const messageDetails = await getMessage(userUid, messageId, client);
+            const messageDetails = await getMessage({ userUid, messageId, client });
             logger.info('Fetched message details on getEmailsFunction:', { messageDetails });
             await processAndStoreEmail(messageDetails, userUid, messageId);
             logger.info('Processed and stored email on getEmailsFunction:', { messageId });
