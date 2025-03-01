@@ -11,6 +11,7 @@ import { addUserToDbFunction } from "./functions/addUserToDb";
 import { startEmailWatchingFunction } from "./functions/startEmailWatching";
 import { getEmailsFunction } from "./functions/getEmails";
 import { onNewMessageFunction } from "./functions/onNewMessage";
+import { storeRefreshTokenFunction } from "./functions/storeRefreshToken";
 
 // Initialize Firebase
 if (!admin.apps.length) {
@@ -21,6 +22,7 @@ if (!admin.apps.length) {
 const TOPIC_NAME = 'gmail-topic';
 
 export const addUserToDb = functionsv1.auth.user().onCreate(addUserToDbFunction);
+export const storeRefreshToken = functionsv2.https.onCall(storeRefreshTokenFunction);
 export const startEmailWatching = functionsv2.https.onCall(startEmailWatchingFunction);
 export const getEmails = functionsv2.https.onCall(getEmailsFunction);
 export const updateHistoryId = onMessagePublished(TOPIC_NAME, onNewMessageFunction);

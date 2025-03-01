@@ -5,9 +5,7 @@ import * as admin from 'firebase-admin';
 import * as functionsv2 from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 
-import { createGmailClient, exchangeAuthCodeForRefreshToken, watchGmail } from '../helpers/gmail';
-import { storeRefreshToken } from '../helpers/db';
-import { getCredentials } from '../utils/httpv2';
+import { createGmailClient, watchGmail } from '../helpers/gmail';
 
 // Initialize Firebase
 if (!admin.apps.length) {
@@ -23,14 +21,7 @@ if (!admin.apps.length) {
 export const startEmailWatchingFunction = async (request: functionsv2.https.CallableRequest) => {
   try {
     const data = request.data;
-    logger.info(`Start email watching for user ${data.uid} on startEmailWatchingFunction`);
-    const uid = await getCredentials(request);
-    const { authCode } = data;
-    logger.info(`Storing refresh token for user ${uid} on startEmailWatchingFunction`);
-    const { refresh_token } = await exchangeAuthCodeForRefreshToken(authCode, uid);
-    logger.info(`Refresh token obtained successfully for user ${uid} on startEmailWatchingFunction`);
-    await storeRefreshToken(uid, refresh_token);
-    logger.info(`Refresh token stored successfully for user ${uid} on startEmailWatchingFunction`);
+    const uid = data.uid;
     logger.info(`Creating Gmail client for user ${uid} on startEmailWatchingFunction`);
     const oauth2Client = await createGmailClient(uid);
     logger.info(`Gmail client created successfully for user ${uid} on startEmailWatchingFunction`);
