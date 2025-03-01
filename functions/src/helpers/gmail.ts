@@ -124,11 +124,11 @@ export const getMessages = async (params: GetMessagesParams): Promise<GetMessage
     const messagesList = await gmail.users.messages.list({ userId: 'me', maxResults, q });
     logger.info('Message list fetched successfully', { userUid });
     const messagesData = messagesList.data;
-    if (!messagesData.messages) {
+    const messages = messagesData.messages;
+    if (!messages) {
       logger.info('No messages found for this user.', { userUid });
       return { messages: [], nextPageToken: null, resultSizeEstimate: 0 };
     }
-    const messages = messagesData.messages;
     const resultSizeEstimate = messagesData.resultSizeEstimate || 0;
     const nextPageToken = messagesData.nextPageToken || null;
     return { messages, nextPageToken, resultSizeEstimate };
