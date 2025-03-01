@@ -260,6 +260,41 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
       logger.error(`Error parsing raw email for message ${messageId} on user ${userId} in processAndStoreEmail`, { error });
       throw error;
     }
+  } else if (message.payload) {
+    logger.info(`Payload email for message ${messageId} on user ${userId} in processAndStoreEmail`, { payload: message.payload });
+    const headers = message.payload.headers;
+    const dateValue = headers?.find((header: any) => header.name === 'Date')?.value;
+    const date = dateValue ? new Date(dateValue) : null;
+    const subject = headers?.find((header: any) => header.name === 'Subject')?.value;
+    const from = headers?.find((header: any) => header.name === 'From')?.value;
+    const to = headers?.find((header: any) => header.name === 'To')?.value;
+    const parts = message.payload.parts;
+    const body = parts?.find((part: any) => part.mimeType === 'text/html')?.body?.data;
+    const text = parts?.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
+    const labels = message.labelIds;
+    const snippet = message.snippet;
+    const hasAttachments = parts?.some((part: any) => part.mimeType === 'application/octet-stream') || false;
+    const attachments = parts?.filter((part: any) => part.mimeType === 'application/octet-stream').map((part: any) => ({
+      id: part.body?.attachmentId || null,
+      filename: part.filename || null,
+      mimeType: part.mimeType || null,
+      size: part.body?.size || null,
+      data: part.body?.data || null,
+    })) || null;
+    return {
+      messageId: id,
+      historyId: message.historyId || null,
+      subject: subject || null,
+      from: from || null,
+      to: to || null,
+      date: date || null,
+      body: body || null,
+      text: text || null,
+      labels: labels || null,
+      snippet: snippet || null,
+      hasAttachments: hasAttachments || false,
+      attachments: attachments || null,
+    };
   } else {
     throw new Error(`No raw email content found for message ${messageId} on user ${userId} in processAndStoreEmail`);
   }
