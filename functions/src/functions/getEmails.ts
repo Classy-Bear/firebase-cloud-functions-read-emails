@@ -21,8 +21,8 @@ if (!admin.apps.length) {
  * @returns A promise that resolves to a boolean indicating success or failure
  */
 export const getEmailsFunction = async (request: functionsv2.https.CallableRequest) => {
+    const userUid = await getCredentials(request);
     try {
-        const userUid = await getCredentials(request);
         await getUserFromDb(userUid); // This will throw an error if the user is not found
         const client = await createGmailClient(userUid);
         const { maxResults, q } = request.data;
