@@ -25,7 +25,8 @@ export const getEmailsFunction = async (request: functionsv2.https.CallableReque
         const userUid = await getCredentials(request);
         await getUserFromDb(userUid); // This will throw an error if the user is not found
         const client = await createGmailClient(userUid);
-        const { messages } = await getMessages(userUid, client);
+        const { maxResults, q } = request.data;
+        const { messages } = await getMessages({ userUid, client, maxResults, q });
         logger.info(`Fetched ${messages.length} messages for user ${userUid} on getEmailsFunction`);
         for (const message of messages) {
             const messageId = message.id;

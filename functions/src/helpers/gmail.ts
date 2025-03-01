@@ -98,16 +98,30 @@ type GetMessagesResponse = {
 }
 
 /**
+ * Parameters for fetching messages from the user's Gmail account
+ * @property {string} userUid - The Firebase user ID
+ * @property {OAuth2Client} client - The Gmail client to use
+ * @property {number} maxResults - The maximum number of messages to fetch
+ * @property {string} q - The query to use for fetching messages
+ */
+type GetMessagesParams = {
+  userUid: string;
+  client?: OAuth2Client;
+  maxResults?: number;
+  q?: string;
+}
+
+/**
  * Fetches messages from the user's Gmail account
- * @param {string} userUid - The Firebase user ID of the user to fetch messages for
- * @param {OAuth2Client} client - The Gmail client to use
+ * @param {GetMessagesParams} params - The parameters for the messages
  * @returns {Promise<GetMessagesResponse>} A promise that resolves with an array of messages
  */
-export const getMessages = async (userUid: string, client?: OAuth2Client): Promise<GetMessagesResponse> => {
+export const getMessages = async (params: GetMessagesParams): Promise<GetMessagesResponse> => {
+  const { userUid, client, maxResults, q } = params;
   try {
     const auth = client || await createGmailClient(userUid);
     const gmail = google.gmail({ version: 'v1', auth });
-    const messagesList = await gmail.users.messages.list({ userId: 'me' });
+    const messagesList = await gmail.users.messages.list({ userId: 'me', maxResults, q });
     logger.info('Message list fetched successfully', { userUid });
     const messagesData = messagesList.data;
     if (!messagesData.messages) {
