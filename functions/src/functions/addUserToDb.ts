@@ -1,7 +1,7 @@
 import * as logger from "firebase-functions/logger";
 import * as functionsv1 from "firebase-functions/v1";
 import * as admin from 'firebase-admin';
-import { addUserToDb } from "..";
+import { addUserToDb } from "../helpers/db";
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
