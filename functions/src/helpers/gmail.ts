@@ -273,7 +273,6 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
     const text = parts?.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
     const labels = message.labelIds;
     const snippet = message.snippet;
-    const hasAttachments = parts?.some((part: any) => part.mimeType === 'application/octet-stream') || false;
     const attachments = parts?.filter((part: any) => part.mimeType === 'application/octet-stream').map((part: any) => ({
       id: part.body?.attachmentId || null,
       filename: part.filename || null,
@@ -281,6 +280,7 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
       size: part.body?.size || null,
       data: part.body?.data || null,
     })) || null;
+    const hasAttachments = (attachments?.length ?? 0) > 0 || false;
     return {
       messageId: id,
       historyId: message.historyId || null,
