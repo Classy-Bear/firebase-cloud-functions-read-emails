@@ -63,11 +63,8 @@ export const processAndStoreEmail = async (message: gmail_v1.Schema$Message, use
     const emailData = await getFullMessage(message, userId, messageId);
     const attachmentsWithUrls = [];
     try {
-      if (emailData.hasAttachments) {
-        const attachments = await getAttachments({
-          userUid: userId,
-          messageId: id,
-        });
+      if (emailData.hasAttachments && emailData.attachments) {
+        const attachments = emailData.attachments;
         for (const attachment of attachments) {
           const downloadUrl = await uploadAttachment({
             userId,
