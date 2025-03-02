@@ -158,7 +158,7 @@ type GetMessageParams = {
  * @returns {Promise<gmail_v1.Schema$Message>} A promise that resolves with the message
  */
 export const getMessage = async (params: GetMessageParams): Promise<gmail_v1.Schema$Message> => {
-  const { userUid, messageId, client, format = 'raw' } = params;
+  const { userUid, messageId, client, format = 'full' } = params;
   const auth = client || await createGmailClient(userUid);
   try {
     const gmail = google.gmail({ version: 'v1', auth });
