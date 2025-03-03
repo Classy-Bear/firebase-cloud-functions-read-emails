@@ -12,6 +12,8 @@ import { startEmailWatchingFunction } from "./functions/startEmailWatching";
 import { getEmailsFunction } from "./functions/getEmails";
 import { onNewMessageFunction } from "./functions/onNewMessage";
 import { storeRefreshTokenFunction } from "./functions/storeRefreshToken";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onNewPendingMessageFunction } from "./functions/onNewPendingMessage";
 
 // Initialize Firebase
 if (!admin.apps.length) {
@@ -26,3 +28,4 @@ export const storeRefreshToken = functionsv2.https.onCall(storeRefreshTokenFunct
 export const startEmailWatching = functionsv2.https.onCall(startEmailWatchingFunction);
 export const getEmails = functionsv2.https.onCall(getEmailsFunction);
 export const updateHistoryId = onMessagePublished(TOPIC_NAME, onNewMessageFunction);
+export const onNewPendingMessage = onDocumentCreated('pending-messages/{docId}', onNewPendingMessageFunction);

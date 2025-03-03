@@ -133,3 +133,19 @@ export const getUserFromDb = async (uid: string): Promise<admin.firestore.Docume
   }
   return userData;
 }
+
+/**
+ * Updates the historyId for a user in the database
+ * @param {string} userId - The user ID
+ * @param {string} historyId - The new history ID to update
+ * @returns {Promise<void>} A promise that resolves when the historyId is updated
+ */
+export const updateHistoryIdInDb = async (userId: string, historyId: string): Promise<void> => {
+  const db = admin.firestore();
+  const userRef = db.collection('users').doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists) {
+    throw new Error(`User not found for userId: ${userId}`);
+  }
+  await userRef.update({ historyId });
+}

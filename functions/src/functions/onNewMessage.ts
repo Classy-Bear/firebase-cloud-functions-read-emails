@@ -30,16 +30,24 @@ export const onNewMessageFunction = async (event: CloudEvent<MessagePublishedDat
             throw new Error('Missing required data in push notification, emailAddress: ' + emailAddress + ' historyId: ' + historyId);
         }
         const db = admin.firestore();
-        const userSnapshot = await db.collection('users')
-            .where('email', '==', emailAddress)
-            .limit(1)
-            .get();
-        if (!userSnapshot.empty) {
-            const userRef = userSnapshot.docs[0].ref;
-            await userRef.update({ historyId });
-            logger.info('Updated user with new historyId', { emailAddress, historyId });
-        } else {
-            logger.warn('User not found for email when trying to update historyId', { emailAddress });
+        try {
+            logger.info('Creating pending message for later processing', { emailAddress, historyId });
+            const pendingMessageRef = db.collection('pending-messages').doc();
+            await pendingMessageRef.set({
+                emailAddress,
+                historyId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'pending',
+                attempts: 0
+            });
+            logger.info('Created pending message for later processing', {
+                emailAddress,
+                historyId,
+                documentId: pendingMessageRef.id
+            });
+        } catch (error) {
+            logger.error('Error creating pending message document', { emailAddress, historyId });
+            throw error;
         }
     } catch (error) {
         logger.error('Error handling Gmail push notification', { error });
