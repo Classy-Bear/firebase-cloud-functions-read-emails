@@ -11,6 +11,7 @@ This project implements a Firebase Cloud Function that listens for incoming emai
 - Secure token handling and authentication
 - OAuth2 authorization code exchange for secure token management
 - Automatic refresh token storage and management
+- Pending messages queue for reliable processing
 - Comprehensive error handling and logging
 - Granular security rules for both Firestore and Storage
 
@@ -51,9 +52,12 @@ The system works as follows:
    - Refresh token is securely stored in Firestore
 3. The function uses the stored refresh token to maintain Gmail API access
 4. When new emails arrive:
+   - A pending message document is created in the 'pending-messages' collection
+   - A Cloud Function triggers on document creation to process the email
    - Email content is parsed and stored in Firestore
    - Attachments are processed and stored in Firebase Storage
    - Download URLs for attachments are stored with email metadata
+   - User's historyId is updated to track latest changes
 5. Each email is stored with:
    - Basic metadata (subject, from, to, date)
    - Email body in both HTML and text formats
