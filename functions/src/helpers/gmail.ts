@@ -273,14 +273,12 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
     const text = parts?.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
     const labels = message.labelIds;
     const snippet = message.snippet;
-    const attachments = parts?.filter((part: any) => part.mimeType === 'application/octet-stream').map((part: any) => ({
-      id: part.body?.attachmentId || null,
-      filename: part.filename || null,
-      mimeType: part.mimeType || null,
-      size: part.body?.size || null,
-      data: part.body?.data || null,
-    })) || null;
-    const hasAttachments = (attachments?.length ?? 0) > 0 || false;
+    const hasAttachments = (parts?.filter((part: any) => part.mimeType === 'application/octet-stream').length ?? 0) > 0 || false;
+    const attachments: Attachment[] = [];
+    if (hasAttachments) {
+      const fetchedAttachments = await getAttachments({ userUid: userId, messageId, message });
+      attachments.push(...fetchedAttachments);
+    }
     return {
       messageId: id,
       historyId: message.historyId || null,
@@ -361,11 +359,13 @@ export const watchGmail = async (uid: string, client: OAuth2Client) => {
  * Parameters for fetching an attachment from a Gmail message
  * @property {string} userUid - The Firebase user ID
  * @property {string} messageId - The Gmail message ID
+ * @property {gmail_v1.Schema$Message} message - The Gmail message
  * @property {OAuth2Client} client - The Gmail client
  */
 type GetAttachmentParams = {
   userUid: string;
   messageId: string;
+  message: gmail_v1.Schema$Message;
   client?: OAuth2Client
 }
 
@@ -375,11 +375,11 @@ type GetAttachmentParams = {
  * @returns {Promise<{ id: string; buffer: Buffer; size: number }[]>} The attachment data
  */
 export const getAttachments = async (params: GetAttachmentParams): Promise<Attachment[]> => {
-  const { userUid, messageId, client } = params;
+  const { userUid, messageId, message, client } = params;
   const auth = client || await createGmailClient(userUid);
   try {
     const gmail = google.gmail({ version: 'v1', auth });
-    const fullMessage = await getMessage({ userUid, messageId, client, format: 'full' });
+    const fullMessage = message ?? await getMessage({ userUid, messageId, client: auth, format: 'full' });
     logger.info('Message fetched successfully on getAttachments', { userUid, messageId, fullMessage });
     const parts = fullMessage.payload?.parts;
     if (!parts) {
