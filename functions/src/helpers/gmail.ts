@@ -273,7 +273,7 @@ export const getFullMessage = async (message: gmail_v1.Schema$Message, userId: s
     const text = parts?.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
     const labels = message.labelIds;
     const snippet = message.snippet;
-    const hasAttachments = (parts?.filter((part: any) => part.mimeType === 'application/octet-stream').length ?? 0) > 0 || false;
+    const hasAttachments = (parts?.filter((part: any) => part.filename !== '' || part.mimeType !== '').length ?? 0) > 0 || false;
     const attachments: Attachment[] = [];
     if (hasAttachments) {
       const fetchedAttachments = await getAttachments({ userUid: userId, messageId, message });
@@ -389,7 +389,7 @@ export const getAttachments = async (params: GetAttachmentParams): Promise<Attac
     for (const part of parts) {
       if (part.mimeType == "text/html") {
         logger.info('HTML part found, skipping attachment on getAttachments', { userUid, messageId, part });
-      } else if (part.mimeType == "application/octet-stream") {
+      } else if (part.filename !== '' || part.mimeType !== '') {
         const id = part.body?.attachmentId;
         const filename = part.filename;
         const mimeType = part.mimeType;

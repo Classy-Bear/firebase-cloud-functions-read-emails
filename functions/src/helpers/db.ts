@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 import { gmail_v1 } from "googleapis";
 import { logger } from "firebase-functions/v2";
-import { getFullMessage, getAttachments } from "./gmail";
+import { getFullMessage } from "./gmail";
 import { uploadAttachment } from "./storage";
 import * as functionsv1 from "firebase-functions/v1";
 
@@ -66,6 +66,10 @@ export const processAndStoreEmail = async (message: gmail_v1.Schema$Message, use
       if (emailData.hasAttachments && emailData.attachments) {
         const attachments = emailData.attachments;
         for (const attachment of attachments) {
+          if (!attachment.data) {
+            logger.warn('Skipping attachment with no data', { messageId: id, userId, attachment });
+            continue;
+          }
           const downloadUrl = await uploadAttachment({
             userId,
             messageId: id,
