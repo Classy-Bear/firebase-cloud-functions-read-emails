@@ -55,5 +55,11 @@ export const onNewPendingMessageFunction = async (event: FirestoreEvent<QueryDoc
         }
     } catch (error) {
         logger.error('Error handling new pending message', { error });
+        await event.data?.ref.update({
+            status: 'error',
+            errorMessage: 'Error handling new pending message ' + JSON.stringify(error),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            attempts: admin.firestore.FieldValue.increment(1)
+        });
     }
 }

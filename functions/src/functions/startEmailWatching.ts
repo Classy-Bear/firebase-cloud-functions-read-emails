@@ -20,8 +20,24 @@ if (!admin.apps.length) {
  */
 export const startEmailWatchingFunction = async (request: functionsv2.https.CallableRequest) => {
   try {
+    // Validate authentication
+    if (!request.auth?.uid) {
+      throw new functionsv2.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
     const data = request.data;
     const uid = data.uid;
+    
+    // Validate uid parameter
+    if (!uid) {
+      throw new functionsv2.https.HttpsError('invalid-argument', 'UID is required');
+    }
+
+    // Ensure the authenticated user matches the requested uid
+    if (request.auth.uid !== uid) {
+      throw new functionsv2.https.HttpsError('permission-denied', 'User can only start email watching for themselves');
+    }
+
     logger.info(`Creating Gmail client for user ${uid} on startEmailWatchingFunction`);
     const oauth2Client = await createGmailClient(uid);
     logger.info(`Gmail client created successfully for user ${uid} on startEmailWatchingFunction`);

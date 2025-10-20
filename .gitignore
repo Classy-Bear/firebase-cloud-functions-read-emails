@@ -67,3 +67,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# App Engine Default Service Key
+fir-emails-*.json
